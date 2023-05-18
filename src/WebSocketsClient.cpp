@@ -297,6 +297,25 @@ void WebSocketsClient::onEvent(WebSocketClientEvent cbEvent) {
  * @param num uint8_t client id
  * @param payload uint8_t *
  * @param length size_t
+ * @param fin bool  (see sendFrame for more details)
+  * @param headerToPayload bool  (see sendFrame for more details)
+ * @return true if ok
+ */
+bool WebSocketsClient::sendTXT(uint8_t * payload, size_t length, bool fin, bool headerToPayload) {
+    if(length == 0) {
+        length = strlen((const char *)payload);
+    }
+    if(clientIsConnected(&_client)) {
+        return sendFrame(&_client, fin?WSop_text:WSop_continuation, payload, length, fin, headerToPayload);
+    }
+    return false;
+}
+
+/**
+ * send text data to client
+ * @param num uint8_t client id
+ * @param payload uint8_t *
+ * @param length size_t
  * @param headerToPayload bool  (see sendFrame for more details)
  * @return true if ok
  */

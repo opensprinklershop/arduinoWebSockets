@@ -77,6 +77,7 @@ class WebSocketsClient : protected WebSockets {
 
     void onEvent(WebSocketClientEvent cbEvent);
 
+    bool sendTXT(uint8_t * payload, size_t length, bool fin, bool headerToPayload);
     bool sendTXT(uint8_t * payload, size_t length = 0, bool headerToPayload = false);
     bool sendTXT(const uint8_t * payload, size_t length = 0);
     bool sendTXT(char * payload, size_t length = 0, bool headerToPayload = false);
