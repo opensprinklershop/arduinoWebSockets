@@ -306,7 +306,7 @@ bool WebSocketsClient::sendTXT(uint8_t * payload, size_t length, bool fin, bool 
         length = strlen((const char *)payload);
     }
     if(clientIsConnected(&_client)) {
-        return sendFrame(&_client, fin?WSop_text:WSop_continuation, payload, length, fin, headerToPayload);
+        return sendFrame(&_client, WSop_continuation, payload, length, fin, headerToPayload);
     }
     return false;
 }
