@@ -76,8 +76,6 @@ void WebSocketsClient::begin(const char * host, uint16_t port, const char * url,
 
 #ifdef ESP8266
     randomSeed(RANDOM_REG32);
-#elif defined(ARDUINO_ARCH_RP2040)
-    randomSeed(rp2040.hwrand32());
 #else
     // todo find better seed
     randomSeed(millis());
@@ -226,7 +224,7 @@ void WebSocketsClient::loop(void) {
                 _client.ssl->setCACert(_CA_cert);
 #elif defined(ESP8266) && defined(SSL_AXTLS)
                 _client.ssl->setCACert((const uint8_t *)_CA_cert, strlen(_CA_cert) + 1);
-#elif(defined(ESP8266) || defined(ARDUINO_ARCH_RP2040)) && defined(SSL_BARESSL)
+#elif defined(ESP8266) && defined(SSL_BARESSL)
                 _client.ssl->setTrustAnchors(_CA_cert);
 #else
 #error setCACert not implemented
@@ -292,25 +290,28 @@ void WebSocketsClient::onEvent(WebSocketClientEvent cbEvent) {
     _cbEvent = cbEvent;
 }
 
-/**
- * send text data to client
- * @param num uint8_t client id
- * @param payload uint8_t *
- * @param length size_t
- * @param fin bool  (see sendFrame for more details)
-  * @param headerToPayload bool  (see sendFrame for more details)
- * @return true if ok
- */
-bool WebSocketsClient::sendTXT(uint8_t * payload, size_t length, bool fin, bool headerToPayload) {
+bool WebSocketsClient::sendTXT(const char * payload, size_t length, bool fin, bool headerToPayload) {
     if(length == 0) {
-        length = strlen((const char *)payload);
+        length = strlen(payload);
     }
     if(clientIsConnected(&_client)) {
-        return sendFrame(&_client, WSop_continuation, payload, length, fin, headerToPayload);
+        //https://www.oryx-embedded.com/doc/web__socket_8c_source.html
+         //A fragmented message consists of a single frame with the FIN bit
+         //clear and an opcode other than 0, followed by zero or more frames
+         //with the FIN bit clear and the opcode set to 0, and terminated by
+         //a single frame with the FIN bit set and an opcode of 0
+        WSopcode_t opcode = WSop_text;
+        if (!firstFrag) {
+            firstFrag = true;
+        } else {
+            opcode = WSop_continuation;
+        }
+        if (fin)
+            firstFrag = false;
+        return sendFrame(&_client, opcode, (uint8_t *)payload, length, fin, headerToPayload);
     }
-    return false;
+    return false;	
 }
-
 /**
  * send text data to client
  * @param num uint8_t client id
@@ -447,9 +448,9 @@ bool WebSocketsClient::isConnected(void) {
     return (_client.status == WSC_CONNECTED);
 }
 
-// #################################################################################
-// #################################################################################
-// #################################################################################
+//#################################################################################
+//#################################################################################
+//#################################################################################
 
 /**
  *
@@ -494,7 +495,7 @@ void WebSocketsClient::messageReceived(WSclient_t * client, WSopcode_t opcode, u
 void WebSocketsClient::clientDisconnect(WSclient_t * client) {
     bool event = false;
 
-#if(WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266) || (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP32) || (WEBSOCKETS_NETWORK_TYPE == NETWORK_RP2040)
+#if(WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266) || (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP32)
     if(client->isSSL && client->ssl) {
         if(client->ssl->connected()) {
             client->ssl->flush();
@@ -754,7 +755,7 @@ void WebSocketsClient::handleHeader(WSclient_t * client, String * headerLine) {
                 client->cExtensions = headerValue;
             } else if(headerName.equalsIgnoreCase(WEBSOCKETS_STRING("Sec-WebSocket-Version"))) {
                 client->cVersion = headerValue.toInt();
-            } else if(headerName.equalsIgnoreCase(WEBSOCKETS_STRING("Set-Cookie")) && headerValue.indexOf(" io=") > -1) {
+            } else if(headerName.equalsIgnoreCase(WEBSOCKETS_STRING("Set-Cookie"))) {
                 if(headerValue.indexOf(';') > -1) {
                     client->cSessionId = headerValue.substring(headerValue.indexOf('=') + 1, headerValue.indexOf(";"));
                 } else {
@@ -805,11 +806,9 @@ void WebSocketsClient::handleHeader(WSclient_t * client, String * headerLine) {
                     if(client->isSocketIO) {
                         break;
                     }
-                    // falls through
                 case 403:    ///< Forbidden
-                             // todo handle login
-                             // falls through
-                default:     ///< Server dont unterstand requrst
+                    // todo handle login
+                default:    ///< Server dont unterstand requrst
                     ok = false;
                     DEBUG_WEBSOCKETS("[WS-Client][handleHeader] serverCode is not 101 (%d)\n", client->cCode);
                     clientDisconnect(client);
@@ -885,7 +884,7 @@ void WebSocketsClient::connectedCb() {
     _client.tcp->setTimeout(WEBSOCKETS_TCP_TIMEOUT);
 #endif
 
-#if(WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266) || (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP32) || (WEBSOCKETS_NETWORK_TYPE == NETWORK_RP2040)
+#if(WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266) || (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP32)
     _client.tcp->setNoDelay(true);
 #endif
 

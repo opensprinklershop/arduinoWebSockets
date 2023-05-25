@@ -77,7 +77,7 @@ class WebSocketsClient : protected WebSockets {
 
     void onEvent(WebSocketClientEvent cbEvent);
 
-    bool sendTXT(uint8_t * payload, size_t length, bool fin, bool headerToPayload);
+	bool sendTXT(const char* payload, size_t length, bool fin, bool headerToPayload);
     bool sendTXT(uint8_t * payload, size_t length = 0, bool headerToPayload = false);
     bool sendTXT(const uint8_t * payload, size_t length = 0);
     bool sendTXT(char * payload, size_t length = 0, bool headerToPayload = false);
@@ -108,6 +108,7 @@ class WebSocketsClient : protected WebSockets {
   protected:
     String _host;
     uint16_t _port;
+    bool firstFrag = false;
 
 #if defined(HAS_SSL)
 #ifdef SSL_AXTLS
@@ -155,11 +156,11 @@ class WebSocketsClient : protected WebSockets {
 #endif
 
     /**
-     * called for sending a Event to the app
-     * @param type WStype_t
-     * @param payload uint8_t *
-     * @param length size_t
-     */
+         * called for sending a Event to the app
+         * @param type WStype_t
+         * @param payload uint8_t *
+         * @param length size_t
+         */
     virtual void runCbEvent(WStype_t type, uint8_t * payload, size_t length) {
         if(_cbEvent) {
             _cbEvent(type, payload, length);

@@ -33,20 +33,21 @@ jobs:
         run: |
           source $GITHUB_WORKSPACE/travis/common.sh
           cd $GITHUB_WORKSPACE
+          echo -en "::set-output name=matrix::"
+          echo -en "["
 
-          echo -en "matrix=" >> $GITHUB_OUTPUT
-          echo -en "[" >> $GITHUB_OUTPUT
+          get_sketches_json_matrix arduino $GITHUB_WORKSPACE/examples/esp8266 esp8266 1.6.13 esp8266com:esp8266:generic:xtal=80
+          echo -en ","
 
-          get_sketches_json_matrix arduino $GITHUB_WORKSPACE/examples/esp8266_pico esp8266 1.8.19 esp8266com:esp8266:generic:xtal=80,vt=flash,exception=disabled,stacksmash=disabled,ssl=all,mmu=3232,non32xfer=fast,ResetMethod=nodemcu,CrystalFreq=26,FlashFreq=80,FlashMode=qio,eesz=4M2M,led=2,sdk=nonosdk_190703,ip=lm2f,dbg=Serial1,lvl=SSL,wipe=none,baud=115200 >> $GITHUB_OUTPUT
-          echo -en "," >> $GITHUB_OUTPUT
+          get_sketches_json_matrix arduino $GITHUB_WORKSPACE/examples/esp8266 esp8266 1.6.13 esp8266com:esp8266:generic:xtal=80,dbg=Serial1
+          echo -en ","
 
-          get_sketches_json_matrix arduino $GITHUB_WORKSPACE/examples/esp8266_pico esp8266 1.8.19 esp8266com:esp8266:generic:xtal=80,vt=flash,exception=disabled,stacksmash=disabled,ssl=all,mmu=3232,non32xfer=fast,ResetMethod=nodemcu,CrystalFreq=26,FlashFreq=80,FlashMode=qio,eesz=4M2M,led=2,sdk=nonosdk_190703,ip=lm2f,dbg=Disabled,lvl=None____,wipe=none,baud=115200 >> $GITHUB_OUTPUT
-          echo -en "," >> $GITHUB_OUTPUT
+          get_sketches_json_matrix arduino $GITHUB_WORKSPACE/examples/esp8266 esp8266 1.8.13 esp8266com:esp8266:generic:xtal=80,eesz=1M,FlashMode=qio,FlashFreq=80
+          echo -en ","
 
-          get_sketches_json_matrix arduino $GITHUB_WORKSPACE/examples/esp32 esp32 1.8.19 espressif:esp32:esp32:FlashFreq=80 >> $GITHUB_OUTPUT
+          get_sketches_json_matrix arduino $GITHUB_WORKSPACE/examples/esp32 esp32 1.8.13 espressif:esp32:esp32:FlashFreq=80
 
-          echo -en "]" >> $GITHUB_OUTPUT
-          echo >> $GITHUB_OUTPUT
+          echo -en "]"
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
@@ -55,7 +56,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        IDE_VERSION: [1.8.19]
+        IDE_VERSION: [1.8.13, 1.6.13]
     env:
       IDE_VERSION: ${{ matrix.IDE_VERSION }}
 
@@ -65,7 +66,7 @@ jobs:
       - name: Get Date
         id: get-date
         run: |
-          echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+          echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
         shell: bash
 
       - uses: actions/cache@v2
@@ -98,7 +99,7 @@ jobs:
           get_core esp8266
 
       - name: download esp32
-        if: steps.cache_all.outputs.cache-hit != 'true'
+        if: steps.cache_all.outputs.cache-hit != 'true' && matrix.IDE_VERSION != '1.6.13'
         run: |
           source $GITHUB_WORKSPACE/travis/common.sh
           get_core esp32
@@ -127,7 +128,7 @@ jobs:
       - name: Get Date
         id: get-date
         run: |
-          echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+          echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
         shell: bash
 
       - uses: actions/cache@v2
@@ -163,18 +164,15 @@ jobs:
 
       - name: config IDE
         run: |
-          set +x
           export DISPLAY=:1.0
           export PATH="$HOME/arduino_ide:$PATH"
           arduino --board $BOARD --save-prefs
-          arduino --pref update.check=false --pref build.verbose=false --pref cache.enable=true --pref compiler.cache_core=true --pref compiler.warning_level=default --save-prefs
           arduino --get-pref sketchbook.path
-          arduino --get-pref
+          arduino --pref update.check=false
 
       - name: build example
         timeout-minutes: 20
         run: |
-          set -ex
           export DISPLAY=:1.0
           export PATH="$HOME/arduino_ide:$PATH"
           source $GITHUB_WORKSPACE/travis/common.sh
