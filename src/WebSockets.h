@@ -63,8 +63,8 @@
 
 #if defined(ESP8266) || defined(ESP32)
 
-#define WEBSOCKETS_MAX_DATA_SIZE (8 * 1024)
-#define WEBSOCKETS_USE_BIG_MEM
+#define WEBSOCKETS_MAX_DATA_SIZE (4 * 1024)
+//#define WEBSOCKETS_USE_BIG_MEM
 #define GET_FREE_HEAP ESP.getFreeHeap()
 // moves all Header strings to Flash (~300 Byte)
 // #define WEBSOCKETS_SAVE_RAM
