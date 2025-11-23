@@ -564,7 +564,7 @@ void WebSocketsClient::clientDisconnect(WSclient_t * client, const char * reason
 #ifdef HAS_SSL
     if(client->isSSL && client->ssl) {
         if(client->ssl->connected()) {
-            client->ssl->flush();
+            client->ssl->clear();
             client->ssl->stop();
         }
         event = true;
@@ -576,8 +576,8 @@ void WebSocketsClient::clientDisconnect(WSclient_t * client, const char * reason
 
     if(client->tcp) {
         if(client->tcp->connected()) {
-#if (WEBSOCKETS_NETWORK_TYPE != NETWORK_ESP8266_ASYNC)
-            client->tcp->flush();
+#if(WEBSOCKETS_NETWORK_TYPE != NETWORK_ESP8266_ASYNC)
+            client->tcp->clear();
 #endif
             client->tcp->stop();
         }
