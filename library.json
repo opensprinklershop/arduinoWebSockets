@@ -19,7 +19,7 @@
     "platforms": "*",
     "repository": {
         "type": "git",
-        "url": "https://github.com/Links2004/arduinoWebSockets.git"
+        "url": "https://github.com/opensprinklershop/ArduinoWebSockets.git"
     },
     "version": "2.7.1"
 }
