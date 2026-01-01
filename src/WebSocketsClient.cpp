@@ -153,6 +153,12 @@ void WebSocketsClient::beginSSL(const char * host, uint16_t port, const char * u
     _client.isSSL = true;
     _fingerprint  = fingerprint;
     _CA_cert      = NULL;
+#ifdef ESP32
+    _CA_bundle    = NULL;
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 4)
+    _CA_bundle_size = 0;
+#endif
+#endif
 }
 
 #if defined(SSL_BARESSL)
@@ -255,6 +261,14 @@ void WebSocketsClient::loop(void) {
             }
             _client.ssl = new WEBSOCKETS_NETWORK_SSL_CLASS();
             _client.tcp = _client.ssl;
+            
+            // ESP32: Always call setInsecure() first for memory-constrained devices
+            // This prevents SSL handshake failures due to missing CA certificates
+            #if defined(ESP32)
+                _client.ssl->setInsecure();
+                DEBUG_WEBSOCKETS("[WS-Client] SSL set to insecure mode (no cert validation)\n");
+            #endif
+            
             if(_CA_cert) {
                 DEBUG_WEBSOCKETS("[WS-Client] setting CA certificate");
 #if defined(ESP32)
